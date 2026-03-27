@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idle Miner - Free Online Clicker Game</title>
+<meta name="description" content="Play Idle Miner online! Upgrade pickaxes, miners, and drills to earn gold. Free browser clicker game for all ages.">
+<meta name="keywords" content="idle game, miner game, clicker game, online game, browser game">
+<meta name="author" content="Your Name">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Inter',sans-serif;background:#020617;color:#fff;overflow-x:hidden}
+.container{max-width:900px;margin:auto;padding:16px}
+.header{text-align:center}
+.stats{display:flex;gap:10px}
+.stat{flex:1;background:#111827;padding:12px;border-radius:10px;text-align:center}
+.mine{display:flex;justify-content:center;margin:20px;position:relative}
+.mine button{width:160px;height:160px;border-radius:50%;border:none;font-size:20px;font-weight:800;background:#22c55e}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.card{background:#111827;padding:12px;border-radius:10px}
+button{padding:8px;border:none;border-radius:8px;margin-top:5px;cursor:pointer}
+.leaderboard{margin-top:20px;background:#111827;padding:10px;border-radius:10px}
+.floating{position:absolute;color:#facc15;font-weight:700;animation:floatUp 1s ease-out forwards}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-50px)}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>⛏️ Idle Miner</h1>
+<p id="userDisplay"></p>
+<button onclick="renameUser()">Rename</button>
+</div>
+
+<div class="stats">
+<div class="stat">Gold<br><b id="gold">0</b></div>
+<div class="stat">/sec<br><b id="gps">0</b></div>
+</div>
+
+<div class="mine" id="mineArea">
+<button onclick="mine(event)">MINE</button>
+</div>
+
+<div class="grid">
+<div class="card">
+<h3>Pickaxe</h3>
+<p>Cost: <span id="pickCost">10</span></p>
+<button onclick="buyPick()">Upgrade</button>
+</div>
+<div class="card">
+<h3>Miner</h3>
+<p>Cost: <span id="minerCost">50</span></p>
+<button onclick="buyMiner()">Hire</button>
+</div>
+<div class="card">
+<h3>Drill</h3>
+<p>+5 gold/sec</p>
+<p>Cost: <span id="drillCost">250</span></p>
+<button onclick="buyDrill()">Buy</button>
+</div>
+</div>
+
+<div class="leaderboard">
+<h3>🏆 Leaderboard</h3>
+<ol id="board"></ol>
+</div>
+</div>
+
+<script>
+// USERNAME + PROFILE SAVE
+let username = localStorage.getItem('username');
+if(!username){
+  username = prompt('Enter your username');
+  localStorage.setItem('username', username);
+}
+
+function updateUser(){
+  document.getElementById('userDisplay').innerText = 'Player: ' + username;
+}
+
+function renameUser(){
+  let newName = prompt('Enter new username');
+  if(newName){
+    saveGame();
+    username = newName;
+    localStorage.setItem('username', username);
+    loadGame();
+    updateUser();
+  }
+}
+
+updateUser();
+
+// GAME VARIABLES
+let gold=0,gpc=1,gps=0;
+let pickCost=10,minerCost=50,drillCost=250;
+
+// LOAD PLAYER-SPECIFIC SAVE
+function loadGame(){
+  const save = JSON.parse(localStorage.getItem('save_' + username));
+  if(save){
+    gold = save.gold || 0;
+    gpc = save.gpc || 1;
+    gps = save.gps || 0;
+    pickCost = save.pickCost || 10;
+    minerCost = save.minerCost || 50;
+    drillCost = save.drillCost || 250;
+  }
+}
+
+loadGame();
+
+function ui(){
+  document.getElementById('gold').innerText=Math.floor(gold);
+  document.getElementById('gps').innerText=gps;
+  document.getElementById('pickCost').innerText=Math.floor(pickCost);
+  document.getElementById('minerCost').innerText=Math.floor(minerCost);
+  document.getElementById('drillCost').innerText=Math.floor(drillCost);
+  updateBoard();
+}
+
+function mine(e){
+  gold+=gpc;
+  showFloating(e, '+'+gpc);
+  ui();
+}
+
+function showFloating(e,text){
+  let el=document.createElement('div');
+  el.className='floating';
+  el.innerText=text;
+  el.style.left=e.offsetX+'px';
+  el.style.top=e.offsetY+'px';
+  document.getElementById('mineArea').appendChild(el);
+  setTimeout(()=>el.remove(),1000);
+}
+
+function buyPick(){if(gold>=pickCost){gold-=pickCost;gpc++;pickCost*=1.5;ui();}}
+function buyMiner(){if(gold>=minerCost){gold-=minerCost;gps++;minerCost*=1.7;ui();}}
+function buyDrill(){if(gold>=drillCost){gold-=drillCost;gps+=5;drillCost*=2;ui();}}
+
+setInterval(()=>{gold+=gps;ui();},1000);
+
+// SAVE PER PLAYER
+function saveGame(){
+  localStorage.setItem('save_' + username, JSON.stringify({gold,gpc,gps,pickCost,minerCost,drillCost}));
+}
+
+setInterval(()=>{
+  saveGame();
+  updateLeaderboard();
+},2000);
+
+// LEADERBOARD
+function updateLeaderboard(){
+  let board = JSON.parse(localStorage.getItem('leaderboard')) || [];
+  let existing = board.find(p=>p.name===username);
+
+  if(existing){existing.gold = gold;}
+  else{board.push({name: username, gold: gold});}
+
+  board.sort((a,b)=>b.gold-a.gold);
+  board = board.slice(0,10);
+  localStorage.setItem('leaderboard', JSON.stringify(board));
+}
+
+function updateBoard(){
+  let board = JSON.parse(localStorage.getItem('leaderboard')) || [];
+  let el = document.getElementById('board');
+  el.innerHTML='';
+  board.forEach(p=>{
+    let li=document.createElement('li');
+    li.innerText=p.name+' - '+Math.floor(p.gold);
+    el.appendChild(li);
+  });
+}
+
+ui();
+</script>
+</body>
+</html>
